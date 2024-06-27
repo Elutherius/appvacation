@@ -1,21 +1,27 @@
 package com.example.idea1
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
     private val OVERLAY_PERMISSION_REQUEST_CODE = 1
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        val openCountTextView = findViewById<TextView>(R.id.openCountTextView)
 
         val enableAccessibilityButton = findViewById<Button>(R.id.enableAccessibilityButton)
         enableAccessibilityButton.setOnClickListener {
@@ -35,6 +41,9 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(serviceIntent)
         }
+
+        // Update open count TextView
+        updateOpenCountTextView(openCountTextView)
     }
 
     private fun requestOverlayPermission() {
@@ -64,5 +73,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun updateOpenCountTextView(openCountTextView: TextView) {
+        val currentDate = DateUtils.getCurrentDate()
+        val lastOpenedDate = sharedPreferences.getString("lastOpenedDate", "")
+        var openCount = sharedPreferences.getInt("openCount", 0)
+
+        if (!DateUtils.isSameDay(currentDate, lastOpenedDate ?: "")) {
+            openCount = 0
+        }
+
+        openCountTextView.text = "You've already opened Instagram $openCount times today"
     }
 }

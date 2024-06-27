@@ -2,6 +2,7 @@ package com.example.idea1
 
 import android.app.Service
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
@@ -18,12 +19,14 @@ class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var overlayView: View
+    private lateinit var sharedPreferences: SharedPreferences
     private var correctAnswer: Int = 0
     private val handler = Handler()
 
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
 
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         overlayView = inflater.inflate(R.layout.overlay_layout, null)
@@ -42,6 +45,7 @@ class OverlayService : Service() {
         val exitButton = overlayView.findViewById<Button>(R.id.exitButton)
         val submitButton = overlayView.findViewById<Button>(R.id.submitButton)
         val instructionTextView = overlayView.findViewById<TextView>(R.id.instructionTextView)
+        val openCountTextView = overlayView.findViewById<TextView>(R.id.openCountTextView)
         val mathProblemTextView = overlayView.findViewById<TextView>(R.id.mathProblemTextView)
         val answerEditText = overlayView.findViewById<EditText>(R.id.answerEditText)
         val countdownTextView = overlayView.findViewById<TextView>(R.id.countdownTextView)
@@ -57,11 +61,12 @@ class OverlayService : Service() {
             submitAnswer(answer, instructionTextView, mathProblemTextView, answerEditText, submitButton, countdownTextView, incorrectAnswerTextView)
         }
 
-        displayAppropriateScreen(instructionTextView, mathProblemTextView, answerEditText, submitButton, countdownTextView, incorrectAnswerTextView)
+        displayAppropriateScreen(instructionTextView, openCountTextView, mathProblemTextView, answerEditText, submitButton, countdownTextView, incorrectAnswerTextView)
     }
 
     private fun displayAppropriateScreen(
         instructionTextView: TextView,
+        openCountTextView: TextView,
         mathProblemTextView: TextView,
         answerEditText: EditText,
         submitButton: Button,
@@ -71,6 +76,7 @@ class OverlayService : Service() {
         val remainingTime = getRemainingBlockTime()
         if (remainingTime > 0) {
             instructionTextView.visibility = View.GONE
+            openCountTextView.visibility = View.GONE
             mathProblemTextView.visibility = View.GONE
             answerEditText.visibility = View.GONE
             submitButton.visibility = View.GONE
@@ -79,12 +85,14 @@ class OverlayService : Service() {
             showCountdownTimer(remainingTime, countdownTextView)
         } else {
             instructionTextView.visibility = View.VISIBLE
+            openCountTextView.visibility = View.VISIBLE
             mathProblemTextView.visibility = View.VISIBLE
             answerEditText.visibility = View.VISIBLE
             submitButton.visibility = View.VISIBLE
             incorrectAnswerTextView.visibility = View.GONE
             countdownTextView.visibility = View.GONE
             generateRandomMathProblem(mathProblemTextView)
+            updateOpenCountTextView(openCountTextView)
         }
     }
 
@@ -121,6 +129,18 @@ class OverlayService : Service() {
         val num2 = Random.nextInt(1, 10)
         correctAnswer = num1 * num2
         mathProblemTextView.text = "$num1 x $num2 = ?"
+    }
+
+    private fun updateOpenCountTextView(openCountTextView: TextView) {
+        val currentDate = DateUtils.getCurrentDate()
+        val lastOpenedDate = sharedPreferences.getString("lastOpenedDate", "")
+        var openCount = sharedPreferences.getInt("openCount", 0)
+
+        if (!DateUtils.isSameDay(currentDate, lastOpenedDate ?: "")) {
+            openCount = 0
+        }
+
+        openCountTextView.text = "You've already opened this app $openCount times today"
     }
 
     private fun submitAnswer(

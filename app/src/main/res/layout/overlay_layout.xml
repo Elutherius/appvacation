@@ -15,13 +15,23 @@
         android:fontFamily="@font/avenirltstd_book" />
 
     <TextView
-        android:id="@+id/mathProblemTextView"
+        android:id="@+id/openCountTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/instructionTextView"
         android:layout_centerHorizontal="true"
+        android:text="You've already opened this app 0 times today"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/mathProblemTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/openCountTextView"
+        android:layout_centerHorizontal="true"
         android:layout_marginTop="25dp"
-        android:text="4 x 4 = ?"
+        android:text="4 x 4 = __"
         android:textSize="24sp"
         android:fontFamily="@font/avenirltstd_book" />
 
