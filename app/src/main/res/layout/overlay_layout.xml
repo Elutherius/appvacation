@@ -8,10 +8,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp"
-        android:text="Don't waste your time\nAt least solve this problem"
+        android:layout_marginTop="175dp"
+        android:text="On Instagram Again?"
         android:textSize="24sp"
-        android:textAlignment="center" />
+        android:textAlignment="center"
+        android:fontFamily="@font/avenirltstd_book" />
 
     <TextView
         android:id="@+id/mathProblemTextView"
@@ -19,9 +20,10 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/instructionTextView"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="25dp"
         android:text="4 x 4 = ?"
-        android:textSize="24sp" />
+        android:textSize="24sp"
+        android:fontFamily="@font/avenirltstd_book" />
 
     <EditText
         android:id="@+id/answerEditText"
@@ -30,25 +32,40 @@
         android:layout_below="@id/mathProblemTextView"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
-        android:hint="Your answer" />
+        android:hint="Your answer"
+        android:fontFamily="@font/avenirltstd_book" />
 
-    <Button
-        android:id="@+id/submitButton"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/answerEditText"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="Submit" />
+        android:layout_marginTop="30dp"
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/exitButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/submitButton"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="Exit" />
+        <Button
+            android:id="@+id/submitButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:text="Submit"
+            android:fontFamily="@font/avenirltstd_book"
+            android:background="@drawable/button_rounded_corners"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#19571E"
+            android:layout_marginEnd="50dp" />
+
+        <Button
+            android:id="@+id/exitButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exit"
+            android:fontFamily="@font/avenirltstd_book"
+            android:background="@drawable/button_rounded_corners"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B01B1B" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/countdownTextView"
@@ -58,7 +75,8 @@
         android:text="Try again in x minute x second"
         android:textSize="24sp"
         android:textAlignment="center"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:fontFamily="@font/avenirltstd_book" />
 
     <TextView
         android:id="@+id/incorrectAnswerTextView"
@@ -70,6 +88,7 @@
         android:text="At least solve it correctly loser."
         android:textSize="24sp"
         android:textAlignment="center"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:fontFamily="@font/avenirltstd_book" />
 
 </RelativeLayout>
