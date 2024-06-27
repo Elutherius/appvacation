@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE)
-        val openCountTextView = findViewById<TextView>(R.id.openCountTextView)
 
         val enableAccessibilityButton = findViewById<Button>(R.id.enableAccessibilityButton)
         enableAccessibilityButton.setOnClickListener {
@@ -41,9 +40,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(serviceIntent)
         }
-
-        // Update open count TextView
-        updateOpenCountTextView(openCountTextView)
     }
 
     private fun requestOverlayPermission() {
