@@ -8,6 +8,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
+        <activity android:name=".AppSelectionActivity" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -16,6 +18,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
 
         <service
             android:name=".AppMonitorService"
@@ -49,8 +53,18 @@
 
     </application>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+
     <!-- Ensure these permissions are declared -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+
     <!-- Remove PACKAGE_USAGE_STATS from the manifest as it should be requested at runtime -->
 </manifest>

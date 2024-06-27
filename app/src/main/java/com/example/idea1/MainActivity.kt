@@ -40,6 +40,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(serviceIntent)
         }
+
+        // In onCreate method of MainActivity.kt
+        val openAppSelectionButton = findViewById<Button>(R.id.openAppSelectionButton)
+        openAppSelectionButton.setOnClickListener {
+            val intent = Intent(this, AppSelectionActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     private fun requestOverlayPermission() {
