@@ -3,9 +3,11 @@ package com.example.idea1
 import android.app.Service
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -79,15 +81,14 @@ class OverlayService : Service() {
         openCountTextView: TextView,
         packageName: String
     ) {
-        val remainingTime = getRemainingBlockTime(packageName)
-        if (remainingTime > 0) {
+        if (isAppBlocked(packageName)) {
             instructionTextView.visibility = View.GONE
             mathProblemTextView.visibility = View.GONE
             answerEditText.visibility = View.GONE
             submitButton.visibility = View.GONE
             incorrectAnswerTextView.visibility = View.VISIBLE
             countdownTextView.visibility = View.VISIBLE
-            showCountdownTimer(remainingTime, countdownTextView)
+            showCountdownTimer(packageName, countdownTextView)
         } else {
             instructionTextView.visibility = View.VISIBLE
             mathProblemTextView.visibility = View.VISIBLE
@@ -100,18 +101,19 @@ class OverlayService : Service() {
         updateOpenCountTextView(openCountTextView, packageName)
     }
 
-    private fun showCountdownTimer(remainingTime: Long, countdownTextView: TextView) {
+    private fun showCountdownTimer(packageName: String, countdownTextView: TextView) {
+        val remainingTime = getRemainingBlockTime(packageName)
         val minutes = remainingTime / 1000 / 60
         val seconds = (remainingTime / 1000) % 60
         countdownTextView.text = "Try again in $minutes minute $seconds second"
-        handler.postDelayed(updateTimerRunnable(countdownTextView), 1000)
+        handler.postDelayed(updateTimerRunnable(packageName, countdownTextView), 1000)
     }
 
-    private fun updateTimerRunnable(countdownTextView: TextView) = object : Runnable {
+    private fun updateTimerRunnable(packageName: String, countdownTextView: TextView) = object : Runnable {
         override fun run() {
-            val remainingTime = getRemainingBlockTime("")
+            val remainingTime = getRemainingBlockTime(packageName)
             if (remainingTime > 0) {
-                showCountdownTimer(remainingTime, countdownTextView)
+                showCountdownTimer(packageName, countdownTextView)
             } else {
                 handler.removeCallbacks(this)
                 countdownTextView.visibility = View.GONE
@@ -148,9 +150,11 @@ class OverlayService : Service() {
         if (checkAnswer(answer)) {
             saveLastSolvedTime(packageName)
             allowAppAccess(packageName)
+            setBlockStatus(packageName, false)
             stopSelf()
         } else {
             saveLastWrongAnswerTime(packageName)
+            setBlockStatus(packageName, true)
             instructionTextView.visibility = View.GONE
             mathProblemTextView.visibility = View.GONE
             answerEditText.visibility = View.GONE
@@ -166,35 +170,6 @@ class OverlayService : Service() {
     private fun saveLastWrongAnswerTime(packageName: String) {
         val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
         prefs.edit().putLong("lastWrongAnswerTime_$packageName", System.currentTimeMillis()).apply()
-    }
-
-    private fun showCountdownTimer(packageName: String, countdownTextView: TextView) {
-        val remainingTime = getRemainingBlockTime(packageName)
-        val minutes = remainingTime / 1000 / 60
-        val seconds = (remainingTime / 1000) % 60
-        countdownTextView.text = "Try again in $minutes minute $seconds second"
-        handler.postDelayed(updateTimerRunnable(packageName, countdownTextView), 1000)
-    }
-
-    private fun updateTimerRunnable(packageName: String, countdownTextView: TextView) = object : Runnable {
-        override fun run() {
-            val remainingTime = getRemainingBlockTime(packageName)
-            if (remainingTime > 0) {
-                showCountdownTimer(packageName, countdownTextView)
-            } else {
-                handler.removeCallbacks(this)
-                countdownTextView.visibility = View.GONE
-                val instructionTextView = overlayView.findViewById<TextView>(R.id.instructionTextView)
-                val mathProblemTextView = overlayView.findViewById<TextView>(R.id.mathProblemTextView)
-                val answerEditText = overlayView.findViewById<EditText>(R.id.answerEditText)
-                val submitButton = overlayView.findViewById<Button>(R.id.submitButton)
-                instructionTextView.visibility = View.VISIBLE
-                mathProblemTextView.visibility = View.VISIBLE
-                answerEditText.visibility = View.VISIBLE
-                submitButton.visibility = View.VISIBLE
-                generateRandomMathProblem(mathProblemTextView)
-            }
-        }
     }
 
     private fun getRemainingBlockTime(packageName: String): Long {
@@ -216,11 +191,6 @@ class OverlayService : Service() {
         startActivity(intent)
     }
 
-    private fun blockAppForDuration(packageName: String, duration: Long) {
-        val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
-        prefs.edit().putLong("block_end_time_$packageName", System.currentTimeMillis() + duration).apply()
-    }
-
     private fun saveLastSolvedTime(packageName: String) {
         val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
         prefs.edit().putLong("lastSolvedTime_$packageName", System.currentTimeMillis()).apply()
@@ -228,13 +198,33 @@ class OverlayService : Service() {
 
     private fun allowAppAccess(packageName: String) {
         val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
-        val allowedTime = prefs.getLong("${packageName}_allowed_time", 30 * 1000)
-        prefs.edit().putLong("${packageName}_allowed_until", System.currentTimeMillis() + allowedTime).apply()
+        prefs.edit().putLong("${packageName}_allowed_until", System.currentTimeMillis() + 30 * 1000).apply()
     }
 
     private fun updateOpenCountTextView(openCountTextView: TextView, packageName: String) {
         val openCount = sharedPreferences.getInt("openCount_$packageName", 0)
-        openCountTextView.text = "You've already opened $packageName $openCount times today"
+        val appName = getAppNameFromPackage(packageName)
+        openCountTextView.text = "You've already opened $appName $openCount times today"
+    }
+
+    private fun getAppNameFromPackage(packageName: String): String {
+        return try {
+            val packageManager = packageManager
+            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(applicationInfo).toString()
+        } catch (e: PackageManager.NameNotFoundException) {
+            packageName // Fallback to package name if app label is not found
+        }
+    }
+
+    private fun setBlockStatus(packageName: String, isBlocked: Boolean) {
+        val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
+        prefs.edit().putBoolean("isBlocked_$packageName", isBlocked).apply()
+    }
+
+    private fun isAppBlocked(packageName: String): Boolean {
+        val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
+        return prefs.getBoolean("isBlocked_$packageName", false)
     }
 
     override fun onDestroy() {
@@ -247,4 +237,3 @@ class OverlayService : Service() {
         return null
     }
 }
-
