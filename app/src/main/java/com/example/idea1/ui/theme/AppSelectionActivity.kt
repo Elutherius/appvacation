@@ -29,16 +29,16 @@ class AppSelectionActivity : AppCompatActivity() {
         val monitoredAppsList = installedApps.filter { monitoredApps.contains(it.packageName) }
         val allAppsList = installedApps
 
-        monitoredAppsRecyclerView.layoutManager = LinearLayoutManager(this)
-        monitoredAppsAdapter = AppAdapter(monitoredAppsList, true) { app, add ->
+        monitoredAppsAdapter = AppAdapter(monitoredAppsList, isMonitoredList = true) { app, add ->
             handleAppAction(app, add)
         }
+        monitoredAppsRecyclerView.layoutManager = LinearLayoutManager(this)
         monitoredAppsRecyclerView.adapter = monitoredAppsAdapter
 
-        allAppsRecyclerView.layoutManager = LinearLayoutManager(this)
-        allAppsAdapter = AppAdapter(allAppsList, false) { app, add ->
+        allAppsAdapter = AppAdapter(allAppsList, isMonitoredList = false) { app, add ->
             handleAppAction(app, add)
         }
+        allAppsRecyclerView.layoutManager = LinearLayoutManager(this)
         allAppsRecyclerView.adapter = allAppsAdapter
     }
 
@@ -60,22 +60,24 @@ class AppSelectionActivity : AppCompatActivity() {
             monitoredApps.remove(app.packageName)
         }
         sharedPreferences.edit().putStringSet("monitored_apps", monitoredApps.toSet()).apply()
-        updateAdapters()
+        refreshMonitoredApps()
     }
 
-    private fun updateAdapters() {
-        val installedApps = getInstalledApps()
-        val monitoredAppsList = installedApps.filter { monitoredApps.contains(it.packageName) }
-        val allAppsList = installedApps
+    private fun refreshMonitoredApps() {
+        val newMonitoredApps = getMonitoredApps()
+        monitoredAppsAdapter.apps = newMonitoredApps
+        monitoredAppsAdapter.notifyDataSetChanged()
 
-        monitoredAppsAdapter = AppAdapter(monitoredAppsList, true) { app, add ->
-            handleAppAction(app, add)
-        }
-        allAppsAdapter = AppAdapter(allAppsList, false) { app, add ->
-            handleAppAction(app, add)
-        }
+        val newInstalledApps = getInstalledApps()
+        allAppsAdapter.apps = newInstalledApps
+        allAppsAdapter.notifyDataSetChanged()
+    }
 
-        findViewById<RecyclerView>(R.id.monitoredAppsRecyclerView).adapter = monitoredAppsAdapter
-        findViewById<RecyclerView>(R.id.allAppsRecyclerView).adapter = allAppsAdapter
+    private fun getMonitoredApps(): List<ApplicationInfo> {
+        val pm = packageManager
+        val monitoredAppPackages = sharedPreferences.getStringSet("monitored_apps", setOf())!!
+        return pm.getInstalledApplications(PackageManager.GET_META_DATA).filter {
+            monitoredAppPackages.contains(it.packageName)
+        }
     }
 }

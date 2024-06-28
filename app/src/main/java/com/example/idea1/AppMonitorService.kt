@@ -5,17 +5,15 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Handler
-import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import android.widget.Toast
+import android.util.Log
 
 class AppMonitorService : AccessibilityService() {
 
     private val handler = Handler()
     private val checkInterval = 1000L // Check every second
     private lateinit var sharedPreferences: SharedPreferences
-    private var lastOpenTimestamp: Long = 0
-
+    private var lastOpenedTime: Long = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -23,109 +21,97 @@ class AppMonitorService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event != null && event.packageName == "com.instagram.android") {
-            val currentTime = System.currentTimeMillis()
-
-            Log.d("AppMonitorService", """
-            Event Details:
-            EventType: ${event.eventType}
-            Class: ${event.className}
-            Package: ${event.packageName}
-            Time: ${event.eventTime}
-            Text: ${event.text}
-            ContentDescription: ${event.contentDescription}
-            Source: ${event.source}
-            WindowId: ${event.windowId}
-            EventId: ${event.eventType}
-        """.trimIndent())
-
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                if (currentTime - lastOpenTimestamp > 2000) { // 2 seconds threshold
-                    lastOpenTimestamp = currentTime
-                    Log.d("AppMonitorService", "Instagram opened")
-                    updateOpenCount()
-                    if (!isInstagramAccessAllowed()) {
-                        showOverlay()
-                    } else {
-                        handler.post(checkInstagramAccess)
-                    }
+        if (event != null && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val monitoredApps = sharedPreferences.getStringSet("monitored_apps", setOf())!!
+            if (monitoredApps.contains(event.packageName)) {
+                Log.d("AppMonitorService", "${event.packageName} opened")
+                if (System.currentTimeMillis() - lastOpenedTime > 2000) {
+                    updateOpenCount(event.packageName.toString())
+                    lastOpenedTime = System.currentTimeMillis()
+                }
+                if (!isAppAccessAllowed(event.packageName.toString())) {
+                    showOverlay(event.packageName.toString())
                 } else {
-                    Log.d("AppMonitorService", "Instagram open event ignored due to threshold")
+                    handler.post(checkAppAccess(event.packageName.toString()))
                 }
             }
         }
     }
 
-
-
-
-    private val checkInstagramAccess = object : Runnable {
-        override fun run() {
-            if (!isInstagramAccessAllowed()) {
-                closeInstagram()
-            } else {
-                handler.postDelayed(this, checkInterval)
+    private val checkAppAccess = { packageName: String ->
+        object : Runnable {
+            override fun run() {
+                if (!isAppAccessAllowed(packageName)) {
+                    closeApp(packageName)
+                } else {
+                    handler.postDelayed(this, checkInterval)
+                }
             }
         }
     }
 
-    private fun isInstagramAccessAllowed(): Boolean {
+    private fun getMonitoredApps(): Set<String> {
+        val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        return prefs.getStringSet("monitored_apps", setOf()) ?: setOf()
+    }
+
+    private fun isAppAccessAllowed(packageName: String): Boolean {
         val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
-        val allowedUntil = prefs.getLong("instagram_allowed_until", 0)
+        val allowedUntil = prefs.getLong("${packageName}_allowed_until", 0)
         return System.currentTimeMillis() <= allowedUntil
     }
 
-    private fun allowInstagramAccess() {
+    private fun allowAppAccess(packageName: String) {
         val prefs = getSharedPreferences("app_blocks", MODE_PRIVATE)
-        prefs.edit().putLong("instagram_allowed_until", System.currentTimeMillis() + 30 * 1000).apply()
+        val allowedTime = prefs.getLong("${packageName}_allowed_time", 30 * 1000)
+        prefs.edit().putLong("${packageName}_allowed_until", System.currentTimeMillis() + allowedTime).apply()
     }
 
-    private fun closeInstagram() {
+    private fun closeApp(packageName: String) {
         val intent = Intent(Intent.ACTION_MAIN)
         intent.addCategory(Intent.CATEGORY_HOME)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
     }
 
-    private fun showOverlay() {
+    private fun showOverlay(packageName: String) {
         val intent = Intent(this, OverlayService::class.java)
+        intent.putExtra("packageName", packageName)
         startService(intent)
     }
 
+    private fun updateOpenCount(packageName: String) {
+        val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        val currentDate = DateUtils.getCurrentDate()
+        val lastOpenedDate = prefs.getString("lastOpenedDate_$packageName", "")
+        var openCount = prefs.getInt("openCount_$packageName", 0)
+
+        if (!DateUtils.isSameDay(currentDate, lastOpenedDate ?: "")) {
+            openCount = 0
+        }
+
+        openCount += 1
+        prefs.edit().putInt("openCount_$packageName", openCount).apply()
+        prefs.edit().putString("lastOpenedDate_$packageName", currentDate).apply()
+
+        Log.d("AppMonitorService", "Open count for $packageName updated: $openCount")
+    }
+
     override fun onInterrupt() {
-        handler.removeCallbacks(checkInstagramAccess)
+        handler.removeCallbacksAndMessages(null)
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         val info = AccessibilityServiceInfo()
         info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-        info.packageNames = arrayOf("com.instagram.android")
+        info.packageNames = null // Monitor all apps
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
         serviceInfo = info
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(checkInstagramAccess)
-    }
-
-    private fun updateOpenCount() {
-        val currentDate = DateUtils.getCurrentDate()
-        val lastOpenedDate = sharedPreferences.getString("lastOpenedDate", "")
-        var openCount = sharedPreferences.getInt("openCount", 0)
-
-        if (!DateUtils.isSameDay(currentDate, lastOpenedDate ?: "")) {
-            openCount = 0
-        }
-
-        openCount++
-        sharedPreferences.edit()
-            .putString("lastOpenedDate", currentDate)
-            .putInt("openCount", openCount)
-            .apply()
-
-        Log.d("AppMonitorService", "Open count updated: $openCount")
-        Toast.makeText(this, "You've opened Instagram $openCount times today", Toast.LENGTH_SHORT).show()
+        handler.removeCallbacksAndMessages(null)
     }
 }
