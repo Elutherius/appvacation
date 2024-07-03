@@ -1,33 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    tools:context=".AppSelectionActivity">
 
-    <TextView
+    <Button
+        android:id="@+id/toggleMonitoredApps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Monitored Apps"
-        android:textSize="18sp"
-        android:padding="8dp" />
+        android:text="Toggle Monitored Apps"
+        android:onClick="toggleMonitoredApps" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/monitoredAppsRecyclerView"
+    <LinearLayout
+        android:id="@+id/monitoredAppsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp" />
+        android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="All Apps"
-        android:textSize="18sp"
-        android:padding="8dp" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/monitoredAppsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:nestedScrollingEnabled="false" />
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/allAppsRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="wrap_content" />
 </LinearLayout>

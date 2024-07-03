@@ -33,6 +33,18 @@ class MainActivity : AppCompatActivity() {
             requestOverlayPermission()
         }
 
+        val openAppSelectionButton = findViewById<Button>(R.id.openAppSelectionButton)
+        openAppSelectionButton.setOnClickListener {
+            val intent = Intent(this, AddAppsActivity::class.java)
+            startActivity(intent)
+        }
+
+        val openMonitoredAppsButton = findViewById<Button>(R.id.viewMonitoredAppsButton)
+        openMonitoredAppsButton.setOnClickListener {
+            val intent = Intent(this, MonitoredAppsActivity::class.java)
+            startActivity(intent)
+        }
+
         // Start the MonitorService
         val serviceIntent = Intent(this, MonitorService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -40,14 +52,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(serviceIntent)
         }
-
-        // In onCreate method of MainActivity.kt
-        val openAppSelectionButton = findViewById<Button>(R.id.openAppSelectionButton)
-        openAppSelectionButton.setOnClickListener {
-            val intent = Intent(this, AppSelectionActivity::class.java)
-            startActivity(intent)
-        }
-
     }
 
     private fun requestOverlayPermission() {
